@@ -92,19 +92,63 @@ curlコマンドを使用する前に、お使いのオペレーティングシ�
 - **Ubuntu/Debian**: `Ctrl + Alt + T` キーボードショートカット
 - **その他**: アプリケーションメニューから「Terminal」や「端末」を検索
 
-### 3.2 curlコマンドを使った基本例
+### 3.2 APIキーの環境変数設定
+
+APIキーを安全かつ再利用可能な形で管理するため、環境変数として設定します。
+
+#### 環境変数の設定方法
+
+**Linux / macOS の場合:**
+```bash
+export YOUR_API_KEY="your-actual-api-key-here"
+```
+
+**Windows コマンドプロンプトの場合:**
+```cmd
+set YOUR_API_KEY=your-actual-api-key-here
+```
+
+**Windows PowerShell の場合:**
+```powershell
+$env:YOUR_API_KEY="your-actual-api-key-here"
+```
+
+環境変数が正しく設定されているか確認するには：
+```bash
+# Linux/macOS
+echo $YOUR_API_KEY
+
+# Windows コマンドプロンプト
+echo %YOUR_API_KEY%
+
+# Windows PowerShell
+echo $env:YOUR_API_KEY
+```
+
+**注意**: curlコマンドで環境変数を使用する場合は、シングルクォート（'）ではなくダブルクォート（"）を使用してください。シングルクォートでは変数が展開されません。
+
+```bash
+# 正しい例（ダブルクォート使用）
+--header "Authorization: Bearer $YOUR_API_KEY"
+
+# 間違った例（シングルクォート使用）
+--header 'Authorization: Bearer $YOUR_API_KEY'  # 変数が展開されない
+```
+
+### 3.3 curlコマンドを使った基本例
 
 最もシンプルな方法として、コマンドラインツール「curl」を使ってDify APIを呼び出してみましょう。
 
 #### 前提条件
 - コンピューターにcurlがインストールされていること（多くのシステムで標準装備）
 - 上記の手順でコマンドライン環境が開かれていること
+- 環境変数 `YOUR_API_KEY` が設定されていること
 
 #### 基本的なチャット呼び出し
 
 ```bash
 curl -X POST 'https://api.dify.ai/v1/chat-messages' \
-  --header 'Authorization: Bearer YOUR_API_KEY' \
+  --header "Authorization: Bearer $YOUR_API_KEY" \
   --header 'Content-Type: application/json' \
   --data-raw '{
     "inputs": {},
@@ -116,7 +160,7 @@ curl -X POST 'https://api.dify.ai/v1/chat-messages' \
 ```
 
 **パラメータの説明**:
-- `YOUR_API_KEY`: 2.1で取得したAPIキーに置き換える
+- `$YOUR_API_KEY`: 3.2で設定した環境変数が自動的に展開されます
 - `query`: Difyに送信したい質問やメッセージ
 - `response_mode`: `blocking`（一度に全回答）または `streaming`（リアルタイム）
 - `user`: ユーザーを識別する任意の文字列
@@ -124,9 +168,9 @@ curl -X POST 'https://api.dify.ai/v1/chat-messages' \
 #### 実行例
 
 ```bash
-# 実際の例（APIキーは仮のものです）
+# 環境変数を使用した実際の例
 curl -X POST 'https://api.dify.ai/v1/chat-messages' \
-  --header 'Authorization: Bearer app-1234567890abcdef' \
+  --header "Authorization: Bearer $YOUR_API_KEY" \
   --header 'Content-Type: application/json' \
   --data-raw '{
     "inputs": {},
@@ -137,13 +181,13 @@ curl -X POST 'https://api.dify.ai/v1/chat-messages' \
   }'
 ```
 
-### 3.3 ワークフローの実行
+### 3.4 ワークフローの実行
 
 ワークフロータイプのアプリケーションの場合は、異なるエンドポイントを使用します：
 
 ```bash
 curl -X POST 'https://api.dify.ai/v1/workflows/run' \
-  --header 'Authorization: Bearer YOUR_API_KEY' \
+  --header "Authorization: Bearer $YOUR_API_KEY" \
   --header 'Content-Type: application/json' \
   --data-raw '{
     "inputs": {
@@ -611,7 +655,7 @@ def call_dify_with_retry(url, headers, data, max_retries=3):
 
 **原因と解決策**:
 - APIキーが間違っている → 正しいAPIキーを確認
-- Authorizationヘッダーの形式が間違っている → `Bearer YOUR_API_KEY`の形式を確認
+- Authorizationヘッダーの形式が間違っている → `Bearer $YOUR_API_KEY`の形式を確認（環境変数使用時）
 - APIキーの権限が不足している → Difyコンソールで権限を確認
 
 ### 7.2 接続エラー
