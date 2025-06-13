@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dify チャットボット</title>
+    <style>
+        .chat-container {
+            max-width: 800px;
+            margin: 50px auto;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .messages {
+            height: 500px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 8px;
+            border-radius: 5px;
+        }
+        .user-message {
+            background-color: #007bff;
+            color: white;
+            text-align: right;
+        }
+        .bot-message {
+            background-color: #f8f9fa;
+            color: #333;
+            overflow-x: auto;
+        }
+        .bot-message pre {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .input-container {
+            display: flex;
+            gap: 10px;
+        }
+        #messageInput {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #sendButton {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h2>Dify AI ワークフロー</h2>
+        <div id="messages" class="messages"></div>
+        <div class="input-container">
+            <input type="text" id="messageInput" placeholder="ワークフローの入力を入力してください..." />
+            <button id="sendButton">実行</button>
+        </div>
+    </div>
+
+    <script>
+        // 設定
+        // 環境変数もしくは設定ファイルからAPIキーを取得するのが理想的です
+        const API_KEY = 'YOUR_API_KEY'; // 実際のAPIキーに置き換えてください
+        const BASE_URL = 'https://api.dify.ai/v1';
+        
+        // DOM要素の取得
+        const messagesDiv = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        
+        // メッセージを画面に表示する関数
+        function addMessage(text, isUser = false, isJson = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+            
+            if (isJson) {
+                // JSONの場合、pre要素を使って整形して表示
+                const preElement = document.createElement('pre');
+                preElement.style.textAlign = 'left';
+                preElement.style.whiteSpace = 'pre-wrap';
+                preElement.style.wordBreak = 'break-word';
+                preElement.textContent = text;
+                messageDiv.appendChild(preElement);
+            } else {
+                messageDiv.textContent = text;
+            }
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        // Dify APIにワークフロー実行リクエストを送信する関数
+        async function sendToDify(message) {
+            try {
+                const response = await fetch(`${BASE_URL}/workflows/run`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        inputs: {
+                            // ワークフローで設定した入力フィールド名に応じて変更してください
+                            // 例: input_field_name: message
+                            requirements: message
+                        },
+                        response_mode: 'blocking',
+                        user: 'web-user'
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // レスポンス全体を返す
+                return data;
+            } catch (error) {
+                console.error('エラーが発生しました:', error);
+                return {
+                    error: 'エラーが発生しました。しばらくしてから再度お試しください。',
+                    details: error.toString()
+                };
+            }
+        }
+        
+        // メッセージ送信処理
+        async function handleSendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+            
+            // ユーザーメッセージを表示
+            addMessage(message, true);
+            messageInput.value = '';
+            
+            // 送信ボタンを無効化
+            sendButton.disabled = true;
+            sendButton.textContent = '実行中...';
+            
+            // Difyに送信して回答を取得
+            const responseData = await sendToDify(message);
+            
+            // 回答を表示
+            if (responseData.answer) {
+                addMessage(responseData.answer, false);
+            }
+            
+            // JSONレスポンス全体を表示
+            addMessage(JSON.stringify(responseData, null, 2), false, true);
+            
+            // 送信ボタンを有効化
+            sendButton.disabled = false;
+            sendButton.textContent = '実行';
+        }
+        
+        // イベントリスナーの設定
+        sendButton.addEventListener('click', handleSendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleSendMessage();
+            }
+        });
+        
+        // 初期メッセージ
+        addMessage('こんにちは！ワークフローの入力を入力してください。', false);
+    </script>
+</body>
+</html>
