@@ -31,6 +31,12 @@ jobs:
         
         # Dify ワークフローを実行
         echo "Executing Dify workflow..."
+        echo "API Endpoint: ${DIFY_BASE_URL}/workflows/run"
+        echo "Request payload includes:"
+        echo "  - daily_trigger: $JST_TIME"
+        echo "  - execution_context: GitHub Actions Daily Run"
+        echo "  - user: github-actions-bot"
+        echo ""
         
         RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${DIFY_BASE_URL}/workflows/run" \
           --header "Authorization: Bearer ${DIFY_API_KEY}" \

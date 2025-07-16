@@ -39,6 +39,18 @@
 
 ### 3. ワークフローの実行確認
 
+#### ローカルテスト（推奨）
+ワークフローをGitHub Actionsで実行する前に、ローカルでテストすることを推奨します：
+
+```bash
+# 環境変数を設定
+export DIFY_API_KEY="your-api-key-here"
+export DIFY_BASE_URL="https://api.dify.ai/v1"  # オプション
+
+# テストスクリプトを実行
+./.github/workflows/test-dify-workflow.sh
+```
+
 #### 自動実行の確認
 - ワークフローは毎日日本時間06:00に自動実行されます
 - 実行結果はGitHubの `Actions` タブで確認できます
