@@ -1,0 +1,75 @@
+name: Daily Dify Workflow Execution
+
+on:
+  schedule:
+    # 毎日日本時間 06:00 に実行 (UTC 21:00 = JST 06:00+1, JST is UTC+9)
+    - cron: '0 21 * * *'
+  workflow_dispatch: # 手動実行も可能
+
+jobs:
+  execute-dify-workflow:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Execute Dify Workflow
+      env:
+        DIFY_API_KEY: ${{ secrets.DIFY_API_KEY }}
+        DIFY_BASE_URL: ${{ secrets.DIFY_BASE_URL || 'https://api.dify.ai/v1' }}
+      run: |
+        # APIキーが設定されているかチェック
+        if [ -z "$DIFY_API_KEY" ]; then
+          echo "Error: DIFY_API_KEY secret is not set"
+          exit 1
+        fi
+        
+        # 現在の日本時間を取得
+        JST_TIME=$(TZ=Asia/Tokyo date '+%Y-%m-%d %H:%M:%S JST')
+        echo "Current JST time: $JST_TIME"
+        
+        # Dify ワークフローを実行
+        echo "Executing Dify workflow..."
+        
+        RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${DIFY_BASE_URL}/workflows/run" \
+          --header "Authorization: Bearer ${DIFY_API_KEY}" \
+          --header "Content-Type: application/json" \
+          --data-raw '{
+            "inputs": {
+              "daily_trigger": "'"$JST_TIME"'",
+              "execution_context": "GitHub Actions Daily Run"
+            },
+            "response_mode": "blocking",
+            "user": "github-actions-bot"
+          }')
+        
+        # レスポンスとHTTPステータスコードを分離
+        HTTP_BODY=$(echo "$RESPONSE" | head -n -1)
+        HTTP_CODE=$(echo "$RESPONSE" | tail -n 1)
+        
+        echo "HTTP Status Code: $HTTP_CODE"
+        echo "Response Body: $HTTP_BODY"
+        
+        # HTTPステータスコードをチェック
+        if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+          echo "✅ Dify workflow executed successfully"
+          
+          # レスポンスをJSONとして整形して表示
+          echo "Formatted Response:"
+          echo "$HTTP_BODY" | jq '.' 2>/dev/null || echo "$HTTP_BODY"
+        else
+          echo "❌ Dify workflow execution failed"
+          echo "Error details: $HTTP_BODY"
+          exit 1
+        fi
+    
+    - name: Log execution summary
+      if: always()
+      run: |
+        echo "=== Execution Summary ==="
+        echo "Timestamp: $(TZ=Asia/Tokyo date '+%Y-%m-%d %H:%M:%S JST')"
+        echo "Workflow: daily-dify-workflow"
+        echo "Status: ${{ job.status }}"
+        echo "Repository: ${{ github.repository }}"
+        echo "Run ID: ${{ github.run_id }}"
