@@ -67,7 +67,7 @@ RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${DIFY_BASE_URL}/workflows/run" 
   }')
 
 # レスポンスとHTTPステータスコードを分離
-HTTP_BODY=$(echo "$RESPONSE" | head -n -1)
+HTTP_BODY=$(echo "$RESPONSE" | sed '$d')
 HTTP_CODE=$(echo "$RESPONSE" | tail -n 1)
 
 echo "📊 Results:"
