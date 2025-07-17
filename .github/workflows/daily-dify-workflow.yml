@@ -1,0 +1,31 @@
+name: Daily Dify Workflow Execution
+
+on:
+  schedule:
+    # 毎日日本時間 06:00 に実行 (UTC 21:00 = JST 06:00+1, JST is UTC+9)
+    - cron: '0 21 * * *'
+  workflow_dispatch: # 手動実行も可能
+
+jobs:
+  execute-dify-workflow:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Execute Dify Workflow
+      env:
+        DIFY_API_KEY: ${{ secrets.DIFY_API_KEY }}
+        DIFY_BASE_URL: ${{ secrets.DIFY_BASE_URL || 'https://api.dify.ai/v1' }}
+      run: ./scripts/run-dify-workflow.sh
+    
+    - name: Log execution summary
+      if: always()
+      run: |
+        echo "=== Execution Summary ==="
+        echo "Timestamp: $(TZ=Asia/Tokyo date '+%Y-%m-%d %H:%M:%S JST')"
+        echo "Workflow: daily-dify-workflow"
+        echo "Status: ${{ job.status }}"
+        echo "Repository: ${{ github.repository }}"
+        echo "Run ID: ${{ github.run_id }}"
